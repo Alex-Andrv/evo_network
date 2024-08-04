@@ -125,7 +125,8 @@ class TSSProblem:
         metadata['time'] = metadata['time'] + tdg_solution_time
         return solution, metadata
 
-    def enhance_solution(self, solution, stop_criteria, iterations):
+
+    def enhance_solution(self, solution, stop_criteria, iterations, t_size):
         assert (stop_criteria.is_iteration_count())
         active_agent = copy(set(solution))
         passive_agent = copy(self.dltm.agents.keys() - active_agent)
@@ -145,10 +146,75 @@ class TSSProblem:
                 active_agent = new_active_agent
                 passive_agent = new_passive_agent
                 best_fit = curr_fit
+            t_size.append(len(active_agent))
             iterations += 1
-        return active_agent, iterations
+        return (active_agent, iterations) if best_fit >= self.threshold else (set(solution), iterations)
 
-    def iter_descent(self, stop_criteria, init_solution, iter_epoch):
+    def iter_descent_v3(self, stop_criteria, init_solution, iter_epoch, t_size):
+        solution = set(init_solution)
+        iterations = 0
+
+        assert (stop_criteria.is_iteration_count())
+        inf = {}
+        for agent_id in self.dltm.agents.keys():
+            inf[agent_id] = 0
+            for agent_id_to in self.dltm.graph[agent_id]:
+                inf[agent_id] += self.dltm.infl[(agent_id, agent_id_to)]
+
+        while len(solution) > 0 and (iterations < stop_criteria.get_iteration_count()):
+            for _ in range(iter_epoch):
+                min_inf = None
+                del_agent_id = None
+                # test_arr = []
+                for agent_id in solution:
+                    if (min_inf is None) or (inf[agent_id] < min_inf):
+                        min_inf = inf[agent_id]
+                        del_agent_id = agent_id
+                    # test_arr.append((len(self.dltm.graph[agent_id]), inf[agent_id]))
+
+                if min_inf is None:
+                    raise Exception("min_inf is None")
+
+                solution = [x for x in solution if x != del_agent_id]
+                # random_element = random.choice(list(solution))
+                # solution.remove(random_element)
+
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
+
+        return solution
+    def iter_descent_v2(self, stop_criteria, init_solution, iter_epoch, t_size):
+        solution = set(init_solution)
+        iterations = 0
+
+        assert (stop_criteria.is_iteration_count())
+        inf = {}
+        for agent_id in self.dltm.agents.keys():
+            inf[agent_id] = 0
+            for agent_id_to in self.dltm.graph[agent_id]:
+                inf[agent_id] += self.dltm.infl[(agent_id, agent_id_to)] / self.dltm.agents[agent_id_to]
+        while len(solution) > 0 and (iterations < stop_criteria.get_iteration_count()):
+            for _ in range(iter_epoch):
+                min_inf = None
+                del_agent_id = None
+                # test_arr = []
+                for agent_id in solution:
+                    if (min_inf is None) or (inf[agent_id] < min_inf):
+                        min_inf = inf[agent_id]
+                        del_agent_id = agent_id
+                    # test_arr.append((len(self.dltm.graph[agent_id]), inf[agent_id]))
+
+                if min_inf is None:
+                    raise Exception("min_inf is None")
+
+                solution = [x for x in solution if x != del_agent_id]
+                # random_element = random.choice(list(solution))
+                # solution.remove(random_element)
+
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
+
+        return solution
+
+    def iter_descent(self, stop_criteria, init_solution, iter_epoch, t_size):
         solution = set(init_solution)
         iterations = 0
 
@@ -174,17 +240,38 @@ class TSSProblem:
                 # random_element = random.choice(list(solution))
                 # solution.remove(random_element)
 
-            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations)
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
 
         return solution
+
+    def solve_using_tdg_and_then_iter_descent_v3(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
+        tdg_solution, tdg_solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
+        random.seed(seed)
+        t_size = []
+        new_solution, time = exec_with_time(lambda: self.iter_descent_v3(
+            stop_criteria,
+            tdg_solution, iter_epoch, t_size))
+        metadata = {'time': tdg_solution_time + time, "t_size": t_size}
+        return new_solution, metadata
+
+    def solve_using_tdg_and_then_iter_descent_v2(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
+        tdg_solution, tdg_solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
+        random.seed(seed)
+        t_size = []
+        new_solution, time = exec_with_time(lambda: self.iter_descent_v2(
+            stop_criteria,
+            tdg_solution, iter_epoch, t_size))
+        metadata = {'time': tdg_solution_time + time, "t_size": t_size}
+        return new_solution, metadata
 
     def solve_using_tdg_and_then_iter_descent(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
         tdg_solution, tdg_solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
         random.seed(seed)
+        t_size = []
         new_solution, time = exec_with_time(lambda: self.iter_descent(
             stop_criteria,
-            tdg_solution, iter_epoch))
-        metadata = {'time': tdg_solution_time + time}
+            tdg_solution, iter_epoch, t_size))
+        metadata = {'time': tdg_solution_time + time, "t_size": t_size}
         return new_solution, metadata
 
     def solve_using_tdg_and_then_doerr_1p1(self, d1, d2, beta, stop_criteria, seed=None):

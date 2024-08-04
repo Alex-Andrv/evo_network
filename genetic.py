@@ -8,13 +8,16 @@ def using_1p1(init_vec, fit_function, mutation, stop_criteria):
     cur_fit = fit_function(cur_vec)
     iterations = 0
     stagnations = 0
+    t_size = []
     while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count())
                or (stop_criteria.is_stagnation_count() and stagnations >= stop_criteria.get_stagnation_count())):
         new_vec = mutation(cur_vec)
         new_fit = fit_function(new_vec)
 
         iterations += 1
+        t_size.append(cur_fit)
         if new_fit < cur_fit:
+            # print(f"Best k = {cur_fit}")
             stagnations = 0
         else:
             stagnations += 1
@@ -23,7 +26,7 @@ def using_1p1(init_vec, fit_function, mutation, stop_criteria):
             cur_vec = new_vec
             cur_fit = new_fit
 
-    return cur_vec, {'iterations': iterations}
+    return cur_vec, {'iterations': iterations, 't_size': t_size}
 
 
 def using_1cl(init_vec, fit_function, mutation, lmbd, stop_criteria):

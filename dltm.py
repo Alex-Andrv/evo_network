@@ -106,12 +106,14 @@ class DLTM:
     def generate_constant_influences(self, c):
         return self.generate_influences(lambda r: c, None)
 
-    def generate_range_influences(self, i_from, i_to, seed=None):
+    def generate_uniformly_random_influences(self, i_from, i_to, seed=None):
         return self.generate_influences(lambda r: r.randrange(i_from, i_to + 1), seed)
 
     # 3. Agents threshold generation
 
-    def generate_proportional_thresholds(self, theta):
+    def generate_thresholds(self, theta_generator, seed=None):
+        random.seed(seed)
+        theta = theta_generator(random)
         if theta < 0 or theta > 1:
             raise ValueError('theta must be in [0;1] range')
 
@@ -122,6 +124,12 @@ class DLTM:
         for a, thr in self.agents.items():
             self.agents[a] = math.ceil(thr * theta)
         return self
+
+    def generate_proportional_thresholds(self, theta):
+        return self.generate_thresholds(lambda r: theta, None)
+
+    def generate_uniformly_random_thresholds(self, theta_from, theta_to, seed=None):
+        return self.generate_thresholds(lambda r: theta_from + r.random() * (theta_to - theta_from), seed)
 
 
 def read_dltm(path):

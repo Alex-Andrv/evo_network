@@ -1,7 +1,7 @@
 from collections import deque
 
 
-def solve(tss, d1, d2):
+def solve(tss, d1=None, d2=None):
     threshold = tss.dltm.agents.copy()
 
     s = set()
@@ -41,7 +41,7 @@ def compute_influence(dltm, agent_id, threshold, r, d1):
             if dltm.infl[(u, w)] >= threshold_tmp[w]:
                 new_infl += 1
                 threshold_tmp[w] = 0
-                if lvl < d1:
+                if d1 is None or lvl < d1:
                     queue.append((w, lvl + 1))
                 visited.add(w)
             else:
@@ -68,7 +68,7 @@ def update_for_new_seed(dltm, agent_id, threshold, r, d1, d2):
                 r.add(w)
                 visited.add(w)
                 threshold[w] = 0
-                if lvl < d2:
+                if d2 is None or lvl < d2:
                     queue.append((w, lvl + 1))
             else:
                 threshold[w] -= dltm.infl[(u, w)]
@@ -94,5 +94,5 @@ def update_incoming_neighbour_influence(dltm, agent_id, threshold, r, d1, ci_set
             ci_set.add(w)
             if (w, u) in dltm.infl and dltm.infl[(w, u)] >= threshold[w]:
                 visited.add(w)
-                if lvl < d1:
+                if d1 is None or lvl < d1:
                     queue.append((w, lvl + 1))
