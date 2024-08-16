@@ -14,9 +14,18 @@ if __name__ == '__main__':
 
     tss_name, dltm = task_name, read_dltm(f'/nfs/home/aandreev/evo_network/generated_graph/{task_name}')
     tss = TSSProblem(dltm, dltm.nodes_count() * 0.75)
-    with open(f'alex_exp/{solver_name}_{task_name}_stats_by_iter.csv', 'w') as f:
-            solution, metadata = run_script(tss, 42)
-            f.write(','.join(map(str, metadata['t_size'])))
+    with open(f'alex_exp/{solver_name}_{task_name}.csv', 'w') as f:
+        f.write(f"{solver_name}\n")
+        f.write(f"time,|TSS|\n")
+        for i in range(20):
+            solution, metadata = run_script(tss, i)
+            print('TSS instance {} ({} nodes, {} edges) solved using {}:  time={}, ts_size={}, ts={}'
+                      .format(tss_name, tss.nodes_count(), tss.edges_count(), solver_name, metadata['time'],
+                              len(solution), solution))
+            f.write(str(metadata['time']))
+            f.write(",")
+            f.write(str(len(solution)))
+            f.write('\n')
             f.flush()
 
              

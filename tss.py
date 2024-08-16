@@ -1,3 +1,4 @@
+import pickle
 import random
 from copy import copy
 from time import time
@@ -57,7 +58,7 @@ class TSSProblem:
                 break
             cur_indices = list(new_indices)
 
-        return wt(cur_vec)
+        return wt(cur_vec), cur_vec
     def fit(self, vec):
         n = len(vec)
         if n != self.nodes_count():
@@ -126,11 +127,14 @@ class TSSProblem:
         return solution, metadata
 
 
-    def enhance_solution(self, solution, stop_criteria, iterations, t_size):
+    def enhance_solution(self, solution, stop_criteria, iterations, t_size, solutions_cache):
         assert (stop_criteria.is_iteration_count())
         active_agent = copy(set(solution))
         passive_agent = copy(self.dltm.agents.keys() - active_agent)
-        best_fit = self.my_fit(agents_to_vec(self, active_agent))
+        best_fit, curr_vector = self.my_fit(agents_to_vec(self, active_agent))
+
+        solutions_cache[tuple(agents_to_vec(self, active_agent))] = curr_vector
+
 
         while (iterations < stop_criteria.get_iteration_count() and best_fit < self.threshold):
             drop_active_element = {el for el in active_agent if random.random() < (1 / len(active_agent))}
@@ -138,7 +142,11 @@ class TSSProblem:
             drop_passive_agent = set(random.sample(list(passive_agent), r))
             new_active_agent = (active_agent - drop_active_element) | drop_passive_agent
             new_passive_agent = (passive_agent - drop_passive_agent) | drop_active_element
-            curr_fit = self.my_fit(agents_to_vec(self, new_active_agent))
+            curr_fit, curr_vector = self.my_fit(agents_to_vec(self, new_active_agent))
+            if tuple(agents_to_vec(self, new_active_agent)) in solutions_cache:
+                # print("cache hit")
+                pass
+            solutions_cache[tuple(agents_to_vec(self, new_active_agent))] = curr_vector
             if (curr_fit > best_fit):
                 # print(f"best_fit={best_fit}, k={len(solution)}")
                 passive_agent -= drop_passive_agent
@@ -161,6 +169,7 @@ class TSSProblem:
             for agent_id_to in self.dltm.graph[agent_id]:
                 inf[agent_id] += self.dltm.infl[(agent_id, agent_id_to)]
 
+        solutions_cache = dict()
         while len(solution) > 0 and (iterations < stop_criteria.get_iteration_count()):
             for _ in range(iter_epoch):
                 min_inf = None
@@ -179,7 +188,15 @@ class TSSProblem:
                 # random_element = random.choice(list(solution))
                 # solution.remove(random_element)
 
-            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size, solutions_cache)
+
+        all_solutions = [[list(keys), list(values)] for keys, values in solutions_cache.items()]
+        import torch
+        inverse_pairs = torch.tensor(all_solutions)
+
+
+        with open('tensor.pkl', 'wb') as f:
+            pickle.dump(inverse_pairs, f)
 
         return solution
     def iter_descent_v2(self, stop_criteria, init_solution, iter_epoch, t_size):
@@ -192,6 +209,9 @@ class TSSProblem:
             inf[agent_id] = 0
             for agent_id_to in self.dltm.graph[agent_id]:
                 inf[agent_id] += self.dltm.infl[(agent_id, agent_id_to)] / self.dltm.agents[agent_id_to]
+
+        solutions_cache = dict()
+
         while len(solution) > 0 and (iterations < stop_criteria.get_iteration_count()):
             for _ in range(iter_epoch):
                 min_inf = None
@@ -210,7 +230,11 @@ class TSSProblem:
                 # random_element = random.choice(list(solution))
                 # solution.remove(random_element)
 
-            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size, solutions_cache)
+
+        all_solutions = [[list(keys), list(values)] for keys, values in solutions_cache.items()]
+        import torch
+        inverse_pairs = torch.tensor(all_solutions)
 
         return solution
 
@@ -223,6 +247,7 @@ class TSSProblem:
         for agent_id in self.dltm.agents.keys():
             inf[agent_id] = tss_tdg.compute_influence(self.dltm, agent_id, self.dltm.agents.copy(), set(), 1000)
 
+        solutions_cache = dict()
 
         while len(solution) > 0 and (iterations < stop_criteria.get_iteration_count()):
             for _ in range(iter_epoch):
@@ -240,7 +265,12 @@ class TSSProblem:
                 # random_element = random.choice(list(solution))
                 # solution.remove(random_element)
 
-            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size)
+            solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size, solutions_cache)
+
+        all_solutions = [[list(keys), list(values)] for keys, values in solutions_cache.items()]
+        import torch
+        inverse_pairs = torch.tensor(all_solutions)
+        # adj =
 
         return solution
 
