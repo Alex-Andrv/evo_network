@@ -101,6 +101,12 @@ class TSSProblem:
             [1] * self.nodes_count(), self.fit, mutation, stop_criteria
         ), seed)
 
+    def solve_using_genetic_algorithm(self, stop_criteria, mutation=genetic.non_increasing_default_mutation,
+                                      crossover=genetic.crossover, seed=None):
+        return self.solve_abstract(lambda: genetic.genetics_algorithm(
+            [1] * self.nodes_count(), self.fit, mutation, crossover, stop_criteria
+        ), seed)
+
     def solve_using_1cl(self, lmbd, stop_criteria, seed=None):
         return self.solve_abstract(lambda: genetic.using_1cl(
             [1] * self.nodes_count(), self.fit, genetic.default_mutation, lmbd, stop_criteria

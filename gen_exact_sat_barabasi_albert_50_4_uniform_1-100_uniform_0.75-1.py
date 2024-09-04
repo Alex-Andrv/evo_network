@@ -12,7 +12,7 @@ from tss import TSSProblem
 
 if __name__ == '__main__':
 
-    tss_name, dltm = task_name, read_dltm(f'/nfs/home/aandreev/evo_network/generated_graph/seria-1/{task_name}')
+    tss_name, dltm = task_name, read_dltm(f'/Users/aandreev/PycharmProjects/evo_network/generated_graph/seria-1/barabasi_albert_50_4_uniform_1-100_const_0.8')
     tss = TSSProblem(dltm, dltm.nodes_count() * 0.75)
     with open(f'alex_exp/{solver_name}_{task_name}.csv', 'w') as f:
         f.write(f"{solver_name}\n")
