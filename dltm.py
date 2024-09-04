@@ -1,7 +1,9 @@
 import math
 import random
 
+import numpy as np
 from networkx import gnp_random_graph, gnm_random_graph, watts_strogatz_graph, barabasi_albert_graph
+from scipy.sparse import csr_matrix
 
 
 class DLTM:
@@ -130,6 +132,35 @@ class DLTM:
 
     def generate_uniformly_random_thresholds(self, theta_from, theta_to, seed=None):
         return self.generate_thresholds(lambda r: theta_from + r.random() * (theta_to - theta_from), seed)
+    
+    def to_compress_graph(self, with_weight=False):
+        # Находим количество узлов в графе
+        nodes = list(self.agents.keys())
+        n = len(nodes)
+
+        # Создаем списки для хранения данных разреженной матрицы
+        rows = []
+        cols = []
+        data = []
+
+        # Заполняем списки на основе графа
+        for node, neighbors in self.graph.items():
+            for neighbor in neighbors:
+                rows.append(node)
+                cols.append(neighbor)
+                if with_weight:
+                    data.append(self.infl[(node, neighbor)])
+                else:
+                    data.append(1)  # Значение 1 указывает на наличие ребра
+
+        # Преобразуем списки в numpy массивы
+        rows = np.array(rows)
+        cols = np.array(cols)
+        data = np.array(data)
+
+        # Создаем разреженную матрицу в формате CSR
+        sparse_matrix = csr_matrix((data, (rows, cols)), shape=(n, n))
+        return sparse_matrix
 
 
 def read_dltm(path):

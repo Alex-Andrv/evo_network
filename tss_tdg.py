@@ -25,6 +25,32 @@ def solve(tss, d1=None, d2=None):
     return list(s)
 
 
+# def compute_influence(dltm, agent_id, threshold, r, d1):
+#     queue = deque()
+#     queue.append((agent_id, 0))
+#     visited = set()
+#     visited.add(agent_id)
+#     new_infl = 0
+#     threshold_tmp = threshold.copy()
+#     while queue:
+#         u, lvl = queue.popleft()
+#         for w in dltm.graph[u]:
+#             if w in r or w in visited:
+#                 continue
+#
+#             if dltm.infl[(u, w)] >= threshold_tmp[w]:
+#                 new_infl += 1
+#                 threshold_tmp[w] = 0
+#                 if d1 is None or lvl < d1:
+#                     queue.append((w, lvl + 1))
+#                 visited.add(w)
+#             else:
+#                 new_infl += dltm.infl[(u, w)] / threshold_tmp[w]
+#                 threshold_tmp[w] -= dltm.infl[(u, w)]
+#     return new_infl
+
+
+
 def compute_influence(dltm, agent_id, threshold, r, d1):
     queue = deque()
     queue.append((agent_id, 0))
@@ -32,6 +58,9 @@ def compute_influence(dltm, agent_id, threshold, r, d1):
     visited.add(agent_id)
     new_infl = 0
     threshold_tmp = threshold.copy()
+
+    ya_new_infl = 0 #a slightly different heuristic to measure influence
+    newly_active = 0
     while queue:
         u, lvl = queue.popleft()
         for w in dltm.graph[u]:
@@ -40,14 +69,64 @@ def compute_influence(dltm, agent_id, threshold, r, d1):
 
             if dltm.infl[(u, w)] >= threshold_tmp[w]:
                 new_infl += 1
+                newly_active += 1
+
                 threshold_tmp[w] = 0
-                if d1 is None or lvl < d1:
+                if lvl < d1:
                     queue.append((w, lvl + 1))
                 visited.add(w)
             else:
                 new_infl += dltm.infl[(u, w)] / threshold_tmp[w]
                 threshold_tmp[w] -= dltm.infl[(u, w)]
-    return new_infl
+
+
+    ya_new_infl += newly_active
+    for u in threshold_tmp:
+        if threshold_tmp[u] > 0:
+            ya_new_infl += (threshold[u] - threshold_tmp[u])/ threshold[u]
+
+    return ya_new_infl
+
+
+
+
+
+# def compute_influence(dltm, agent_id, threshold, r, d1):
+#     queue = deque()
+#     queue.append((agent_id, 0))
+#     visited = set()
+#     visited.add(agent_id)
+#     new_infl = 0
+#     threshold_tmp = threshold.copy()
+#
+#     ya_new_infl = 0 #a slightly different heuristic to measure influence
+#     newly_active = 0
+#     while queue:
+#         u, lvl = queue.popleft()
+#         for w in dltm.graph[u]:
+#             if w in r or w in visited:
+#                 continue
+#
+#             if dltm.infl[(u, w)] >= threshold_tmp[w]:
+#                 new_infl += 1
+#                 newly_active += 1
+#
+#                 threshold_tmp[w] = 0
+#                 if lvl < d1:
+#                     queue.append((w, lvl + 1))
+#                 visited.add(w)
+#             else:
+#                 new_infl += dltm.infl[(u, w)] / threshold_tmp[w]
+#                 threshold_tmp[w] -= dltm.infl[(u, w)]
+#
+#
+#     ya_new_infl += newly_active
+#     for u in threshold_tmp:
+#         if threshold_tmp[u] > 0:
+#             ya_new_infl += (threshold[u] - threshold_tmp[u])/ threshold[u]
+#
+#     return ya_new_infl
+
 
 
 def update_for_new_seed(dltm, agent_id, threshold, r, d1, d2):

@@ -145,7 +145,8 @@ class TSSProblem:
             curr_fit, curr_vector = self.my_fit(agents_to_vec(self, new_active_agent))
             if tuple(agents_to_vec(self, new_active_agent)) in solutions_cache:
                 # print("cache hit")
-                pass
+                continue
+
             solutions_cache[tuple(agents_to_vec(self, new_active_agent))] = curr_vector
             if (curr_fit > best_fit):
                 # print(f"best_fit={best_fit}, k={len(solution)}")
@@ -190,15 +191,16 @@ class TSSProblem:
 
             solution, iterations = self.enhance_solution(solution, stop_criteria, iterations, t_size, solutions_cache)
 
-        all_solutions = [[list(keys), list(values)] for keys, values in solutions_cache.items()]
+        all_solutions = [list(zip(keys, values)) for keys, values in solutions_cache.items()]
         import torch
-        inverse_pairs = torch.tensor(all_solutions)
-
+        inverse_pairs = torch.tensor(all_solutions, dtype=torch.float32)
+        adj = self.dltm.to_compress_graph()
 
         with open('tensor.pkl', 'wb') as f:
-            pickle.dump(inverse_pairs, f)
+            pickle.dump({'adj': adj, "inverse_pairs": inverse_pairs}, f)
 
         return solution
+
     def iter_descent_v2(self, stop_criteria, init_solution, iter_epoch, t_size):
         solution = set(init_solution)
         iterations = 0

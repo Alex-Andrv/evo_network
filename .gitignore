@@ -4,3 +4,4 @@ __pycache__/
 samples/facebook_combined.txt
 measurements/
 /measurements/
+./DeepIM/*
