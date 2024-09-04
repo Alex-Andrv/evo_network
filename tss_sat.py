@@ -12,11 +12,11 @@ def __atleast_equals(lits, weights, eq_lit, first_lit, bound, vpool=IDPool(), en
     if bound == 0:
         return [[eq_lit]]
 
-    atleast_bd = PBEnc.atleast(lits=lits, weights=weights, bound=bound, vpool=vpool, top_id=None, encoding=encoding)
+    atleast_bd = PBEnc.atleast(lits=lits, weights=weights, bound=int(bound), vpool=vpool, top_id=None, encoding=encoding)
     for clause in atleast_bd:
         clause.extend([-eq_lit, first_lit])
 
-    atmost_bd = PBEnc.atmost(lits=lits, weights=weights, bound=bound - 1, vpool=vpool, top_id=None, encoding=encoding)
+    atmost_bd = PBEnc.atmost(lits=lits, weights=weights, bound=int(bound - 1), vpool=vpool, top_id=None, encoding=encoding)
     for clause in atmost_bd:
         clause.append(eq_lit)
 
@@ -46,7 +46,7 @@ def build_cnf(tss, instigators, pb_encoding=EncType.seqcounter):
     formula.extend(PBEnc.equals(
         lits=curr_row,
         weights=None,
-        bound=instigators,
+        bound=int(instigators),
         vpool=vpool,
         top_id=None,
         encoding=pb_encoding)
@@ -72,7 +72,7 @@ def build_cnf(tss, instigators, pb_encoding=EncType.seqcounter):
     formula.extend(PBEnc.atleast(
         lits=curr_row,
         weights=None,
-        bound=tss.threshold,
+        bound=int(tss.threshold),
         vpool=vpool,
         top_id=None,
         encoding=pb_encoding)

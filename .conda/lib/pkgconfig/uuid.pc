@@ -1,0 +1,11 @@
+prefix=/nfs/home/aandreev/evo_network/.conda
+exec_prefix=/nfs/home/aandreev/evo_network/.conda
+libdir=/nfs/home/aandreev/evo_network/.conda/lib
+includedir=/nfs/home/aandreev/evo_network/.conda/include
+
+Name: uuid
+Description: Universally unique id library
+Version: 2.38.1
+Requires:
+Cflags: -I${includedir}/uuid
+Libs: -L${libdir} -luuid

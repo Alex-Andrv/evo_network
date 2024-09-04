@@ -1,0 +1,11 @@
+prefix=/nfs/home/aandreev/evo_network/.conda
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+toolexeclibdir=${libdir}
+includedir=/nfs/home/aandreev/evo_network/.conda/include
+
+Name: libffi
+Description: Library supporting Foreign Function Interfaces
+Version: 3.4.2
+Libs: -L${toolexeclibdir} -lffi
+Cflags: -I${includedir}

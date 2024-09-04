@@ -72,7 +72,7 @@ def compute_influence(dltm, agent_id, threshold, r, d1):
                 newly_active += 1
 
                 threshold_tmp[w] = 0
-                if lvl < d1:
+                if (d1 is None) or (lvl < d1):
                     queue.append((w, lvl + 1))
                 visited.add(w)
             else:
@@ -173,5 +173,5 @@ def update_incoming_neighbour_influence(dltm, agent_id, threshold, r, d1, ci_set
             ci_set.add(w)
             if (w, u) in dltm.infl and dltm.infl[(w, u)] >= threshold[w]:
                 visited.add(w)
-                if d1 is None or lvl < d1:
+                if (d1 is None) or (lvl < d1):
                     queue.append((w, lvl + 1))

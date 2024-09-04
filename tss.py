@@ -97,7 +97,7 @@ class TSSProblem:
         return solution, metadata
 
     def solve_using_1p1(self, stop_criteria, mutation=genetic.non_increasing_default_mutation, seed=None):
-        return self.solve_abstract(lambda: genetic.using_1p1(
+        return self.solve_abstract(lambda:  genetic.using_1p1(
             [1] * self.nodes_count(), self.fit, mutation, stop_criteria
         ), seed)
 
@@ -122,7 +122,7 @@ class TSSProblem:
             agents_to_vec(self, tdg_solution), self.fit,
             genetic.non_increasing_default_mutation,
             stop_criteria
-        ), seed)
+            ), seed)
         metadata['time'] = metadata['time'] + tdg_solution_time
         return solution, metadata
 

@@ -6,12 +6,20 @@ from copy import copy
 def using_1p1(init_vec, fit_function, mutation, stop_criteria):
     cur_vec = init_vec
     cur_fit = fit_function(cur_vec)
+    cache = set([tuple(init_vec)])
     iterations = 0
     stagnations = 0
     t_size = []
     while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count())
                or (stop_criteria.is_stagnation_count() and stagnations >= stop_criteria.get_stagnation_count())):
+        
         new_vec = mutation(cur_vec)
+
+        if tuple(new_vec) in cache:
+            continue
+        
+        cache.add(tuple(new_vec))
+
         new_fit = fit_function(new_vec)
 
         iterations += 1
