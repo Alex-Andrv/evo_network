@@ -2,6 +2,57 @@ import functools
 import random
 from copy import copy
 
+import numpy as np
+
+
+def genetics_algorithm(init_pop, fit_function, mutation, crossover, stop_criteria):
+    population = init_pop
+    fitness_scores = [fit_function(ind) for ind in population]
+    iterations = 0
+    stagnations = 0
+    best_solution = None
+    best_fitness = float('inf')
+
+    while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count()) or
+               (stop_criteria.is_stagnation_count() and stagnations >= stop_criteria.get_stagnation_count())):
+        # Выбор пар для кроссовера
+        parents = select_parents(population, fitness_scores)
+        # Создание нового поколения
+        new_generation = []
+        for p1, p2 in parents:
+            offspring1, offspring2 = crossover(p1, p2)
+            new_generation.extend([mutation(offspring1), mutation(offspring2)])
+
+        # Оценка нового поколения
+        new_fitness_scores = [fit_function(ind) for ind in new_generation]
+
+        # Выбор наилучших особей для следующего поколения
+        population, fitness_scores = select_survivors(new_generation, new_fitness_scores, len(init_pop))
+
+        # Обновление лучшего решения
+        current_best = min(fitness_scores)
+        if current_best < best_fitness:
+            best_fitness = current_best
+            best_solution = population[fitness_scores.index(best_fitness)]
+            stagnations = 0
+        else:
+            stagnations += 1
+
+        iterations += 1
+
+    return best_solution, {'iterations': iterations, 'best_fitness': best_fitness}
+
+
+def select_parents(population, fitness_scores):
+    # Простой способ выбора родителей через турнирный отбор или случайный выбор
+    return [(population[i], population[i + 1]) for i in range(0, len(population), 2)]
+
+
+def select_survivors(new_generation, new_fitness_scores, num_survivors):
+    # Селекция лучших особей для следующего поколения
+    sorted_indices = sorted(range(len(new_fitness_scores)), key=lambda x: new_fitness_scores[x])
+    return [new_generation[i] for i in sorted_indices[:num_survivors]], [new_fitness_scores[i] for i in
+                                                                         sorted_indices[:num_survivors]]
 
 def using_1p1(init_vec, fit_function, mutation, stop_criteria):
     cur_vec = init_vec
@@ -159,6 +210,20 @@ def default_mutation(vec, env=None):
 
 def non_increasing_default_mutation(vec):
     return non_increasing_mutation_of(default_mutation, vec, None)
+
+
+def crossover(vec1, vec2):
+    if len(vec1) != len(vec2):
+        raise ValueError("Vectors must be of the same length")
+
+        # Выбор случайной точки для кроссовера
+    point = random.randint(1, len(vec1) - 1)
+
+    # Создание новых векторов путем обмена частями
+    new_vec1 = vec1[:point] + vec2[point:]
+    new_vec2 = vec2[:point] + vec1[point:]
+
+    return new_vec1, new_vec2
 
 
 def init_doerr_env(beta, ndiv2):
