@@ -5,7 +5,7 @@ from copy import copy
 
 def using_1p1(init_vec, fit_function, mutation, stop_criteria):
     cur_vec = init_vec
-    cur_fit = fit_function(cur_vec)
+    cur_fit, active  = fit_function(cur_vec)
     cache = set([tuple(init_vec)])
     iterations = 0
     stagnations = 0
@@ -13,27 +13,33 @@ def using_1p1(init_vec, fit_function, mutation, stop_criteria):
     while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count())
                or (stop_criteria.is_stagnation_count() and stagnations >= stop_criteria.get_stagnation_count())):
         
-        new_vec = mutation(cur_vec)
-
-        if tuple(new_vec) in cache:
-            continue
+        new_vec, cnt_mutation = mutation(cur_vec)
+        iterations += cnt_mutation
+        # if tuple(new_vec) in cache:
+        #     continue
         
         cache.add(tuple(new_vec))
 
-        new_fit = fit_function(new_vec)
+        new_fit, new_active = fit_function(new_vec)
 
-        iterations += 1
         t_size.append(cur_fit)
         if new_fit < cur_fit:
+            for _ in range(cnt_mutation):
+                print(f"best_fit={new_active}, k={sum(new_vec)}")
             # print(f"Best k = {cur_fit}")
             stagnations = 0
         else:
+            for _ in range(cnt_mutation):
+                print(f"best_fit={active}, k={sum(cur_vec)}")
             stagnations += 1
 
         if new_fit <= cur_fit:
             cur_vec = new_vec
             cur_fit = new_fit
+            active = new_active
 
+    print(f"best_fit={active}, k={sum(cur_vec)}")
+    
     return cur_vec, {'iterations': iterations, 't_size': t_size}
 
 
@@ -52,7 +58,7 @@ def using_1cl(init_vec, fit_function, mutation, lmbd, stop_criteria):
         new_opt_fit = None
         for _ in range(lmbd):
             new_vec = mutation(cur_vec)
-            new_fit = fit_function(new_vec)
+            new_fit, active = fit_function(new_vec)
             if not new_opt_fit or new_fit < new_opt_fit:
                 new_opt_vec = new_vec
                 new_opt_fit = new_fit
@@ -81,6 +87,7 @@ def using_custom_ga(init_vec, fit_function, mutation, crossover, l, h, g, stop_c
 
     sz = l + h + g  # population size
     population_with_fit = [with_fit(item, fit_function) for item in [init_vec] * sz]
+    cache = set(tuple(init_vec))
     iterations = 0
     stagnations = 0
     while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count())
@@ -95,15 +102,17 @@ def using_custom_ga(init_vec, fit_function, mutation, crossover, l, h, g, stop_c
         for _ in range(h):
             i = weighted_random_index(u)
             mutated = mutation(population_with_fit[i][0])
+            iterations += 1
             new_population_with_fit.append(with_fit(mutated, fit_function))  # mutation
 
         for _ in range(g // 2):
             i1, i2 = weighted_random_index(u), weighted_random_index(u)
+            iterations += 1
             crossed_with_fit = [with_fit(crossed, fit_function) for crossed in
                                 crossover(population_with_fit[i1][0], population_with_fit[i2][0])]
             new_population_with_fit.extend(crossed_with_fit)  # crossover
 
-        iterations += 1
+        
         best_fit = max(population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_dec))[1]
         new_best_fit = max(new_population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_dec))[1]
         if new_best_fit < best_fit:
@@ -128,20 +137,22 @@ def weighted_random_index(u):
 
 
 def with_fit(vec, fit_function):
-    return vec, fit_function(vec)
+    return vec, fit_function(vec)[0]
 
 
 def non_increasing_mutation_of(base_mutation, vec, env):
+    cnt_mutations = 0
     vec_wt = sum(vec)
     new_vec = None
     new_vec_wt = None
     while new_vec_wt is None or new_vec_wt > vec_wt:
         new_vec = base_mutation(vec, env)
         new_vec_wt = sum(new_vec)
-    return new_vec
+        cnt_mutations += 1
+    return new_vec, cnt_mutations
 
 
-def default_mutation(vec, env):
+def default_mutation(vec, env=None):
     n = len(vec)
     return [1 - vec[i] if random.randrange(n) == 0 else vec[i] for i in range(n)]
 

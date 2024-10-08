@@ -41,6 +41,7 @@ def build_cnf(tss, instigators, pb_encoding=EncType.seqcounter):
     curr_row = list(range(1, n + 1))         # initial vars in circuit will have IDs from 1 to 'agents'
     vpool = IDPool()
     vpool.occupy(1, n)
+    vpool.top = n+1
 
     formula = CNF()
     formula.extend(PBEnc.equals(
@@ -58,7 +59,7 @@ def build_cnf(tss, instigators, pb_encoding=EncType.seqcounter):
         influencers = dltm.graph.get(agent, [])
         influencers_of[i] = list(dltm.agent_to_ord[agent_id] for agent_id in influencers)
 
-    for _ in range(need_to_activate):
+    for _ in range(int(need_to_activate)):
         new_row = list(vpool.id() for _ in range(n))
         for i in range(n):
             influencers_in_curr_row = list(curr_row[j] for j in influencers_of[i])
@@ -100,7 +101,6 @@ def solve_tss(
         Pseudo-boolean constraints encoding and solver initializer are optional.
     """
     cnf = build_cnf(tss, instigators, pb_encoding)
-    print('cnf was built')
     with sat_solver(cnf) as solver:
         if solver.solve():
             cnf_solution = solver.get_model()
