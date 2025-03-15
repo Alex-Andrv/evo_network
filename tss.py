@@ -114,10 +114,12 @@ class TSSProblem:
         ), seed)
 
     def solve_using_custom_ga(self, l, h, g, stop_criteria, seed=None):
-        return self.solve_abstract(lambda: genetic.using_custom_ga(
-            [1] * self.nodes_count(), self.fit, genetic.default_mutation, genetic.two_point_crossover, l, h, g,
+        solution, solution_time = exec_with_time(lambda: tss_tdg.solve(self, None, None))
+        solution, metadata = self.solve_abstract(lambda: genetic.using_custom_ga(
+            agents_to_vec(self, solution), self.fit, genetic.non_increasing_default_mutation, genetic.two_point_crossover, l, h, g,
             stop_criteria
         ), seed)
+        return solution, {"time": metadata['time'] + solution_time}
 
     def solve_using_tdg(self, d1, d2):
         solution, solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
@@ -283,7 +285,7 @@ class TSSProblem:
 
         return solution
     
-    def iter_descent_v4(self, stop_criteria, init_solution, iter_epoch, t_size):
+    def iter_descent_v4(self, stop_criteria, init_solution, iter_epoch, t_size, limit=50):
         solution = set(init_solution)
         iterations = 0
 
@@ -314,7 +316,7 @@ class TSSProblem:
                 idx = 0
 
 
-                while (idx < len(del_agent_id)) and (idx < 50):
+                while (idx < len(del_agent_id)) and (idx < limit):
                     potential_del_agent_id = candidates[idx][0]
                     potential_new_solution = [x for x in solution if x != potential_del_agent_id]
                     new_fit, _, _ = self.my_fit(agents_to_vec(self, potential_new_solution))
@@ -441,6 +443,43 @@ class TSSProblem:
         print(f"best_fit={cur_fit}, k={sum(cur_vec)}")
         
         return vec_to_agents(self, cur_vec)
+    
+    def solve_using_tdg_and_then_iter_descent_IMP(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
+        tdg_solution, tdg_solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
+        random.seed(seed)
+        
+
+        active_agent = copy(set(tdg_solution))
+        passive_agent = copy(self.dltm.agents.keys() - active_agent)
+        best_fit, curr_vector, _ = self.my_fit(agents_to_vec(self, active_agent))
+
+        iterations = 0
+
+        time_start = time()
+
+        while (iterations < stop_criteria.get_iteration_count()):
+            drop_active_element = {el for el in active_agent if random.random() < (1 / len(active_agent))}
+            r = len(drop_active_element)
+            drop_passive_agent = set(random.sample(list(passive_agent), r))
+            new_active_agent = (active_agent - drop_active_element) | drop_passive_agent
+            new_passive_agent = (passive_agent - drop_passive_agent) | drop_active_element
+            curr_fit, curr_vector, _ = self.my_fit(agents_to_vec(self, new_active_agent))
+            iterations += 1
+            # if tuple(agents_to_vec(self, new_active_agent)) in solutions_cache:
+            #     # print("cache hit")
+            #     continue
+
+            if (curr_fit > best_fit):
+                passive_agent -= drop_passive_agent
+                active_agent -= drop_active_element
+                active_agent = new_active_agent
+                passive_agent = new_passive_agent
+                best_fit = curr_fit
+            print(f"best_fit={best_fit}, k={len(tdg_solution)}")
+        
+        time_end = time()
+
+        return active_agent, {'time': time_end - time_start}
 
 
     def solve_using_tdg_and_then_iter_descent_v3(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
@@ -453,13 +492,13 @@ class TSSProblem:
         metadata = {'time': tdg_solution_time + time, "t_size": t_size}
         return new_solution, metadata
     
-    def solve_using_tdg_and_then_iter_descent_v4(self, d1, d2, stop_criteria, iter_epoch=1, seed=None):
+    def solve_using_tdg_and_then_iter_descent_v4(self, d1, d2, stop_criteria, iter_epoch=1, limit=50, seed=None):
         tdg_solution, tdg_solution_time = exec_with_time(lambda: tss_tdg.solve(self, d1, d2))
         random.seed(seed)
         t_size = []
         new_solution, time = exec_with_time(lambda: self.iter_descent_v4(
             stop_criteria,
-            tdg_solution, iter_epoch, t_size))
+            tdg_solution, iter_epoch, t_size, limit))
         metadata = {'time': tdg_solution_time + time, "t_size": t_size}
         return new_solution, metadata
 
@@ -545,6 +584,57 @@ class TSSProblem:
 
         solution, time = exec_with_time(lambda: do_solve())
         return solution, {'time': time}
+    
+    def solve_using_sat_with_enhance_solution(self, stop_criteria, seed=None, pb_encoding=EncType.seqcounter, sat_solver=lambda cnf: Glucose3(bootstrap_with=cnf)):
+
+        def do_solve():
+            n = self.nodes_count()
+            if self.fit([0] * n)[0] != n + 1:
+                return []
+
+            left = 0
+            right = self.threshold
+            right_solution = None
+            while left + 1 < right:
+                mid = (left + right) // 2
+                mid_solution = tss_sat.solve_tss(self, mid, pb_encoding, sat_solver)
+                if mid_solution:
+                    right = mid
+                    right_solution = mid_solution
+                else:
+                    left = mid
+
+            return right_solution if right_solution else tss_sat.solve_tss(self, right, pb_encoding, sat_solver)
+
+        solution, time = exec_with_time(lambda: do_solve())
+        
+        active_agent = copy(set(solution))
+        passive_agent = copy(self.dltm.agents.keys() - active_agent)
+        best_fit, curr_vector, _ = self.my_fit(agents_to_vec(self, active_agent))
+
+        iterations = 0
+
+        while (iterations < stop_criteria.get_iteration_count()):
+            drop_active_element = {el for el in active_agent if random.random() < (1 / len(active_agent))}
+            r = len(drop_active_element)
+            drop_passive_agent = set(random.sample(list(passive_agent), r))
+            new_active_agent = (active_agent - drop_active_element) | drop_passive_agent
+            new_passive_agent = (passive_agent - drop_passive_agent) | drop_active_element
+            curr_fit, curr_vector, _ = self.my_fit(agents_to_vec(self, new_active_agent))
+            iterations += 1
+            # if tuple(agents_to_vec(self, new_active_agent)) in solutions_cache:
+            #     # print("cache hit")
+            #     continue
+
+            if (curr_fit > best_fit):
+                passive_agent -= drop_passive_agent
+                active_agent -= drop_active_element
+                active_agent = new_active_agent
+                passive_agent = new_passive_agent
+                best_fit = curr_fit
+            print(f"best_fit={best_fit}, k={len(solution)}")
+
+        return active_agent, {'time': time}
 
     def pair_fit(self, active_agent: set, passive_agent: set):
         n = len(active_agent) + len(passive_agent)

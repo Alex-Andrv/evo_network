@@ -51,14 +51,16 @@ for file in glob.glob('*.csv', root_dir=f"{directory_path}/{seria}"):
         if len(lines) == 0:
             continue
         real_solver = lines[0].strip()
-
+        print(os.path.join(directory_path, seria, file))
         time, size, sol = lines[1].strip().split(',')
         assert time == "time", f"{lines[1]}"
         assert size == "|TSS|", f"{lines[1]}"
         assert sol == "sol", sol
         lines = lines[2:]
         for line in lines:
-            time, size, sol = line.strip().split(',', 2)
+            if len(line.strip().split(',')) == 1:
+                continue
+            time, size, sol = line.strip().split(',')
             time, size = float(time), int(size)
             # solution_list = list(sol.split("&"))
             # assert len(solution_list) == size

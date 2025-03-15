@@ -2,7 +2,7 @@
              
 
 task_name = "facebook_combined&uniform_1-1000&uniform_0.75-1"
-solver_name, run_script = ("tdg_doerr1+1[3;10000]",lambda problem, seed: problem.solve_using_tdg_and_then_doerr_1p1(None, None, 3,tss_stop_criteria.by_iteration_count(10000),seed))
+solver_name, run_script = ("tdg_doerr1+1[3;10000]",lambda problem, seed: problem.solve_using_tdg_and_then_doerr_1p1(None, None, 3, tss_stop_criteria.by_iteration_count(10000),seed))
 seria = "seria_3"
 
 

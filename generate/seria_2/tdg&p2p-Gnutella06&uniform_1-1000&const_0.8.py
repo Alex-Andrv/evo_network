@@ -19,7 +19,7 @@ from tss import TSSProblem
 if __name__ == '__main__':
 
     tss_name, dltm = task_name, read_dltm(f'/nfs/home/aandreev/evo_network/generated_graph/{seria}/{task_name}')
-    tss = TSSProblem(dltm, dltm.nodes_count() * 0.75)
+    tss = TSSProblem(dltm, dltm.nodes_count() * 0.5)
     with open(f'alex_exp/{seria}/{solver_name}&{task_name}.csv', 'w') as f:
         f.write(f"{solver_name}\n")
         f.write(f"time,|TSS|,sol\n")

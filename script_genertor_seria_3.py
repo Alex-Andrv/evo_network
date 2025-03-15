@@ -18,7 +18,7 @@ os.mkdir(f'generate/{seria}')
 os.mkdir(f'alex_exp/{seria}')
 
 run_script_template = """
-    sbatch --cpus-per-task=1 --mem=20G -p as --time=20:00:00 -w orthrus-2 --qos=high_cpu --qos=high_mem --qos=unlim_cpu "generate/{}/{}"
+    sbatch --cpus-per-task=1 --mem=20G --time=20:00:00 -w orthrus-1 --qos=high_cpu --qos=high_mem --qos=unlim_cpu "generate/{}/{}"
 """
 
 python_script_template_head = """
@@ -90,10 +90,10 @@ if __name__ == '__main__':
       "lambda problem, seed: problem.solve_using_tdg_and_then_iter_descent_v5(None, None, tss_stop_criteria.by_iteration_count(10000), 1, seed)"),
     ('tdg_iter_descent_v6[10000, 1]',
       "lambda problem, seed: problem.solve_using_tdg_and_then_iter_descent_v6(None, None, tss_stop_criteria.by_iteration_count(10000), 1, seed)"),
-    # ('tdg_genetic[5000, 2, 4, 4]',
-    #   "lambda problem, seed: problem.solve_using_custom_ga(2, 4, 4, tss_stop_criteria.by_stagnation_count(10000), seed=seed)"),
-    # ('tdg_iter_descent_v4[10000, 1]',
-    #   "lambda problem, seed: problem.solve_using_tdg_and_then_iter_descent_v4(None, None, tss_stop_criteria.by_iteration_count(10000), 1, seed)"),
+    ('tdg_genetic[10000, 2, 4, 4]',
+      "lambda problem, seed: problem.solve_using_custom_ga(2, 4, 4, tss_stop_criteria.by_iteration_count(10000), seed=seed)"),
+    ('tdg_iter_descent_v4[10000, 1]',
+      "lambda problem, seed: problem.solve_using_tdg_and_then_iter_descent_v4(None, None, tss_stop_criteria.by_iteration_count(10000), 1, seed)"),
   ]
  
  tasks = [

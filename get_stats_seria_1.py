@@ -21,7 +21,7 @@ def check_sol(graph_full_name, sol):
     k = dltm.nodes_count() * 0.75
     tss = TSSProblem(dltm, dltm.nodes_count() * 0.75)
 
-    res, _ = tss.my_fit(agents_to_vec(tss, sol))
+    res, _, _ = tss.my_fit(agents_to_vec(tss, sol))
     assert res >= int(k) 
 
 all_problems = set()

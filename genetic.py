@@ -133,47 +133,54 @@ def using_custom_ga(init_vec, fit_function, mutation, crossover, l, h, g, stop_c
     if g % 2 == 1:
         raise ValueError('g must be even number')
 
-    def cmp_by_2nd_dec(idx1, idx2):
-        return 0 if idx1[1] == idx2[1] else (1 if idx1[1] < idx2[1] else -1)
+    def cmp_by_2nd_asc(idx1, idx2):
+        return 0 if idx1[1] == idx2[1] else (-1 if idx1[1] < idx2[1] else 1)
 
     sz = l + h + g  # population size
     population_with_fit = [with_fit(item, fit_function) for item in [init_vec] * sz]
     cache = set(tuple(init_vec))
     iterations = 0
     stagnations = 0
+
+    best_fit = min(population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_asc))[1]
+
     while not ((stop_criteria.is_iteration_count() and iterations >= stop_criteria.get_iteration_count())
                or (stop_criteria.is_stagnation_count() and stagnations >= stop_criteria.get_stagnation_count())):
         new_population_with_fit = []
-        u = [(i, 1 / population_with_fit[i][1]) for i in range(sz)]
+        u = [(i, population_with_fit[i][1]) for i in range(sz)]
 
-        u.sort(key=functools.cmp_to_key(cmp_by_2nd_dec))
+        u.sort(key=functools.cmp_to_key(cmp_by_2nd_asc))
 
         [new_population_with_fit.append(population_with_fit[u[i][0]]) for i in range(l)]  # elitism
 
         for _ in range(h):
             i = weighted_random_index(u)
-            mutated = mutation(population_with_fit[i][0])
-            iterations += 1
+            mutated, cnt = mutation(population_with_fit[i][0])
+            iterations += cnt
+            for _ in range(cnt):
+                print(f"best_fit={best_fit}, k={best_fit}")
             new_population_with_fit.append(with_fit(mutated, fit_function))  # mutation
 
         for _ in range(g // 2):
             i1, i2 = weighted_random_index(u), weighted_random_index(u)
             iterations += 1
+            print(f"best_fit={best_fit}, k={best_fit}")
             crossed_with_fit = [with_fit(crossed, fit_function) for crossed in
                                 crossover(population_with_fit[i1][0], population_with_fit[i2][0])]
             new_population_with_fit.extend(crossed_with_fit)  # crossover
 
         
-        best_fit = max(population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_dec))[1]
-        new_best_fit = max(new_population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_dec))[1]
-        if new_best_fit < best_fit:
-            stagnations = 0
-        else:
-            stagnations += 1
+        new_best_fit = min(new_population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_asc))[1]
+        if best_fit > new_best_fit:
+            best_fit = new_best_fit
+        # if new_best_fit  < best_fit:
+        #     stagnations = 0
+        # else:
+        #     stagnations += 1
 
         population_with_fit = new_population_with_fit
 
-    best_in_population = max(population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_dec))[0]
+    best_in_population = min(population_with_fit, key=functools.cmp_to_key(cmp_by_2nd_asc))[0]
     return best_in_population, {'iterations': iterations}
 
 
